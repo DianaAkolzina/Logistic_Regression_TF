@@ -1,0 +1,77 @@
+# Import necessary libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+
+# Generate random data for logistic regression
+X, y = make_classification(n_samples=1000, n_features=4, n_classes=2, random_state=42)
+
+# Split the data into 80% training and 20% testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a Normalization layer to normalize the feature variables
+normalizer = tf.keras.layers.Normalization(axis=-1)
+
+# Adapt the normalizer to the training data
+normalizer.adapt(np.array(X_train))
+
+# Build a logistic regression model using the Sequential API from TensorFlow
+logistic_model = tf.keras.Sequential([
+    normalizer,
+    tf.keras.layers.Dense(units=1, activation='sigmoid')
+])
+
+# Compile the logistic model with the Adam optimizer and binary cross-entropy as the loss function
+logistic_model.compile(
+    optimizer=tf.optimizers.Adam(learning_rate=0.08),
+    loss='binary_crossentropy',
+    metrics=['accuracy'])
+
+# Train the model on the training data for 500 epochs, using a validation split of 20%
+history = logistic_model.fit(
+    X_train,
+    y_train,
+    epochs=500,
+    verbose=0,
+    validation_split=0.2)
+
+# Plot the training and validation loss
+plt.plot(history.history['loss'], label='loss')
+plt.plot(history.history['val_loss'], label='val_loss')
+plt.ylim([0, 1])
+plt.xlabel('Epoch')
+plt.ylabel('Error')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Evaluate the model on the test data
+test_results = logistic_model.evaluate(X_test, y_test, verbose=0)
+
+# Print the test results (loss and accuracy)
+print(f"Loss: {test_results[0]}")
+print(f"Accuracy: {test_results[1]}")
+
+# Generate model predictions on the test features
+predictions = (logistic_model.predict(X_test) > 0.5).astype("int32")
+
+# Calculate key metrics of similarity between the true values and the predicted values
+accuracy = accuracy_score(y_test, predictions)
+confusion = confusion_matrix(y_test, predictions)
+report = classification_report(y_test, predictions)
+
+print(f"Accuracy: {accuracy}")
+print(f"Confusion Matrix:\n {confusion}")
+print(f"Classification Report:\n {report}")
+
+# Plot the confusion matrix using a colormap
+plt.figure(figsize=(6, 6))
+sns.heatmap(confusion, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+plt.xlabel('Predicted Labels')
+plt.ylabel('True Labels')
+plt.title('Confusion Matrix')
+plt.show()
